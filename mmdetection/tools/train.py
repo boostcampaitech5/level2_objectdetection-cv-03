@@ -35,6 +35,7 @@ def parse_args():
     parser.add_argument(
         '--no-validate',
         action='store_true',
+        default=False,
         help='whether not to evaluate the checkpoint during training')
     group_gpus = parser.add_mutually_exclusive_group()
     group_gpus.add_argument(
@@ -54,7 +55,7 @@ def parse_args():
         default=0,
         help='id of gpu to use '
         '(only applicable to non-distributed training)')
-    parser.add_argument('--seed', type=int, default=None, help='random seed')
+    parser.add_argument('--seed', type=int, default=3, help='random seed')
     parser.add_argument(
         '--diff-seed',
         action='store_true',
@@ -109,12 +110,14 @@ def main():
     args = parse_args()
 
     cfg = Config.fromfile(args.config)
+    
 
     # replace the ${key} with the value of cfg.key
     cfg = replace_cfg_vals(cfg)
 
     # update data root according to MMDET_DATASETS
     update_data_root(cfg)
+    
 
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
