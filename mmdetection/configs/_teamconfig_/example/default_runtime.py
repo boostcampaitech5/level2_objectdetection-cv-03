@@ -8,12 +8,12 @@ log_config = dict(
         dict(type='MMDetWandbHook',
              init_kwargs={'project': 'recycle_trash',
                           'entity': 'ganisokay',
-                          'name': 'test',
+                          'name': 'test_kjy',
                           'config': {'lr': 0.02, 'batch_size':16}},
              interval=50,
              log_checkpoint=True,
-             log_checkpoint_metadata=False,
-             num_eval_images=50,
+             log_checkpoint_metadata=True,
+             num_eval_images=1000,
              bbox_score_thr=0.5)
     ])
 # yapf:enable
