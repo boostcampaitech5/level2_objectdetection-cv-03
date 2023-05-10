@@ -44,8 +44,8 @@ test_pipeline = [
 ]
 # NOTE: classes 설정
 data = dict(
-    samples_per_gpu=4,
-    workers_per_gpu=2,
+    samples_per_gpu=16,
+    workers_per_gpu=4,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'train_kjy.json',
