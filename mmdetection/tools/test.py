@@ -20,6 +20,9 @@ from mmdet.utils import (build_ddp, build_dp, compat_cfg, get_device,
                          replace_cfg_vals, setup_multi_processes,
                          update_data_root)
 
+import pandas as pd
+from pandas import DataFrame
+from pycocotools.coco import COCO
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -121,11 +124,11 @@ def parse_args():
 def main():
     args = parse_args()
 
-    assert args.out or args.eval or args.format_only or args.show \
-        or args.show_dir, \
-        ('Please specify at least one operation (save/eval/format/show the '
-         'results / save the results) with the argument "--out", "--eval"'
-         ', "--format-only", "--show" or "--show-dir"')
+    # assert args.out or args.eval or args.format_only or args.show \
+    #     or args.show_dir, \
+    #     ('Please specify at least one operation (save/eval/format/show the '
+    #      'results / save the results) with the argument "--out", "--eval"'
+    #      ', "--format-only", "--show" or "--show-dir"')
 
     if args.eval and args.format_only:
         raise ValueError('--eval and --format_only cannot be both specified')
@@ -269,6 +272,29 @@ def main():
             metric_dict = dict(config=args.config, metric=metric)
             if args.work_dir is not None and rank == 0:
                 mmcv.dump(metric_dict, json_file)
+                
+    # submission 양식에 맞게 output 후처리
+    prediction_strings = []
+    file_names = []
+    coco = COCO(cfg.data.test.ann_file)
+
+    class_num = 10
+    for i, out in enumerate(outputs):
+        prediction_string = ''
+        image_info = coco.loadImgs(coco.getImgIds(imgIds=i))[0]
+        for j in range(class_num):
+            for o in out[j]:
+                prediction_string += str(j) + ' ' + str(o[4]) + ' ' + str(o[0]) + ' ' + str(o[1]) + ' ' + str(
+                    o[2]) + ' ' + str(o[3]) + ' '
+            
+        prediction_strings.append(prediction_string)
+        file_names.append(image_info['file_name'])
+
+
+    submission = pd.DataFrame()
+    submission['PredictionString'] = prediction_strings
+    submission['image_id'] = file_names
+    submission.to_csv(os.path.join(args.work_dir, f'submission.csv'), index=None)
 
 
 if __name__ == '__main__':
