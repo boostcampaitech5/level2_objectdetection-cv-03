@@ -17,8 +17,6 @@ img_norm_cfg = dict(
 )
 
 train_pipeline = [
-    dict(type="LoadImageFromFile"),
-    dict(type="LoadAnnotations", with_bbox=True),
     dict(type="Mosaic", img_scale=(640, 640)),
     dict(type="RandomFlip", flip_ratio=0.0),  # 0.0으로 설정은 하였지만 default meta를 위해 남겨두어야 함
     dict(type="DefaultFormatBundle"),
