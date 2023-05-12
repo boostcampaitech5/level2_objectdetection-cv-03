@@ -29,7 +29,7 @@ def parse_args():
     
     parser.add_argument('--train-type', type=str, default=None, help='aug, model, data')
     parser.add_argument('--work-dir', default=None, help='the dir to save logs and models')
-    parser.add_argument('--fp16', type=bool, default=False)
+    parser.add_argument("--fp16", type=lambda x: (str(x).lower() == 'true'), default=False, help='to use half precision use True')
     
     parser.add_argument(
         '--resume-from', help='the checkpoint file to resume from')
