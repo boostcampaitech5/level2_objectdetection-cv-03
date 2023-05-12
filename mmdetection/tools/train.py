@@ -21,11 +21,15 @@ from mmdet.utils import (collect_env, get_device, get_root_logger,
                          replace_cfg_vals, setup_multi_processes,
                          update_data_root)
 
+import wandb
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
-    parser.add_argument('config', help='train config file path')
-    parser.add_argument('--work-dir', help='the dir to save logs and models')
+    parser.add_argument('config', default=None, help='train config file path')
+    
+    parser.add_argument('--train-type', type=str, default=None, help='aug, model, data')
+    parser.add_argument('--work-dir', default=None, help='the dir to save logs and models')
+
     parser.add_argument(
         '--resume-from', help='the checkpoint file to resume from')
     parser.add_argument(
@@ -109,16 +113,18 @@ def parse_args():
 def main():
     args = parse_args()
 
-    cfg = Config.fromfile(args.config)
+    config_name = args.config
     
-
+    config_file = f"configs/_teamconfig_/[{args.train_type}]{config_name}/{config_name}_config.py"
+    
+    cfg = Config.fromfile(config_file)
+    
     # replace the ${key} with the value of cfg.key
     cfg = replace_cfg_vals(cfg)
 
     # update data root according to MMDET_DATASETS
     update_data_root(cfg)
     
-
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
 
@@ -141,14 +147,12 @@ def main():
     if cfg.get('cudnn_benchmark', False):
         torch.backends.cudnn.benchmark = True
 
-    # work_dir is determined in this priority: CLI > segment in file > filename
     if args.work_dir is not None:
         # update configs according to CLI args if args.work_dir is not None
         cfg.work_dir = args.work_dir
     elif cfg.get('work_dir', None) is None:
         # use config filename as default work_dir if cfg.work_dir is None
-        cfg.work_dir = osp.join('./work_dirs',
-                                osp.splitext(osp.basename(args.config))[0])
+        cfg.work_dir = f"configs/_teamconfig_/[{args.train_type}]{config_name}/checkpoint"
 
     if args.resume_from is not None:
         cfg.resume_from = args.resume_from
@@ -180,12 +184,13 @@ def main():
     # create work_dir
     mmcv.mkdir_or_exist(osp.abspath(cfg.work_dir))
     # dump config
-    cfg.dump(osp.join(cfg.work_dir, osp.basename(args.config)))
+    filename = args.config.split('/')[-1] + '.py'
+    cfg.dump(osp.join(cfg.work_dir, filename))
     # init the logger before other steps
     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
     log_file = osp.join(cfg.work_dir, f'{timestamp}.log')
     logger = get_root_logger(log_file=log_file, log_level=cfg.log_level)
-
+    
     # init the meta dict to record some important information such as
     # environment info and seed, which will be logged
     meta = dict()
@@ -233,6 +238,13 @@ def main():
             CLASSES=datasets[0].CLASSES)
     # add an attribute for visualization convenience
     model.CLASSES = datasets[0].CLASSES
+    
+    # Set wandb run name
+    wandb.init(project="recycle_trash",
+                entity="ganisokay",
+                name=f"[{args.train_type}]{config_name}",
+                config={"lr": 0.02, "batch_size": 16})
+    
     train_detector(
         model,
         datasets,
