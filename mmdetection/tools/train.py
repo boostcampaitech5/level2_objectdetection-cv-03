@@ -29,7 +29,8 @@ def parse_args():
     
     parser.add_argument('--train-type', type=str, default=None, help='aug, model, data')
     parser.add_argument('--work-dir', default=None, help='the dir to save logs and models')
-
+    parser.add_argument("--fp16", type=lambda x: (str(x).lower() == 'true'), default=False, help='to use half precision use True')
+    
     parser.add_argument(
         '--resume-from', help='the checkpoint file to resume from')
     parser.add_argument(
@@ -118,6 +119,10 @@ def main():
     config_file = f"configs/_teamconfig_/[{args.train_type}]{config_name}/{config_name}_config.py"
     
     cfg = Config.fromfile(config_file)
+    
+    # Enable FP16 training if --fp16 argument is passed
+    if args.fp16:
+        cfg.setdefault('fp16', dict(loss_scale=512.))
     
     # replace the ${key} with the value of cfg.key
     cfg = replace_cfg_vals(cfg)
