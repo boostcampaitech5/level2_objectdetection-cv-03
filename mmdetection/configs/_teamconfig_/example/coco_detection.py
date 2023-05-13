@@ -92,4 +92,4 @@ data = dict(
         test_mode=True,
     ),
 )
-evaluation = dict(interval=1, metric="bbox")
+evaluation = dict(interval=1, metric="bbox",classwise=True)
