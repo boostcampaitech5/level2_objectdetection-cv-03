@@ -32,6 +32,7 @@ def parse_args():
     parser.add_argument(
         '--work-dir',
         help='the directory to save the file containing evaluation metrics')
+    parser.add_argument('--test-type', type=str, default=None, help='aug, model, data')
     parser.add_argument('--out', help='output result file in pickle format')
     parser.add_argument(
         '--fuse-conv-bn',
@@ -123,6 +124,10 @@ def parse_args():
 
 def main():
     args = parse_args()
+    
+    config_name = args.config
+    config_file = f"configs/_teamconfig_/[{args.test_type}]{config_name}/{config_name}_config.py"
+    cfg = Config.fromfile(config_file)
 
     # assert args.out or args.eval or args.format_only or args.show \
     #     or args.show_dir, \
@@ -135,9 +140,7 @@ def main():
 
     if args.out is not None and not args.out.endswith(('.pkl', '.pickle')):
         raise ValueError('The output file must be a pkl file.')
-
-    cfg = Config.fromfile(args.config)
-
+    
     # replace the ${key} with the value of cfg.key
     cfg = replace_cfg_vals(cfg)
 
@@ -212,9 +215,10 @@ def main():
     rank, _ = get_dist_info()
     # allows not to create
     if args.work_dir is not None and rank == 0:
-        mmcv.mkdir_or_exist(osp.abspath(args.work_dir))
+        workdir = f"configs/_teamconfig_/[{args.test_type}]{args.work_dir}/results"
+        mmcv.mkdir_or_exist(osp.abspath(workdir))
         timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-        json_file = osp.join(args.work_dir, f'eval_{timestamp}.json')
+        json_file = osp.join(workdir, f'eval_{timestamp}.json')
 
     # build the dataloader
     dataset = build_dataset(cfg.data.test)
@@ -226,7 +230,7 @@ def main():
     fp16_cfg = cfg.get('fp16', None)
     if fp16_cfg is not None:
         wrap_fp16_model(model)
-    checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
+    checkpoint = load_checkpoint(model, f'configs/_teamconfig_/[{args.test_type}]{args.checkpoint}/checkpoint/latest.pth', map_location='cpu')
     if args.fuse_conv_bn:
         model = fuse_conv_bn(model)
     # old versions did not save class info in checkpoints, this walkaround is
@@ -294,7 +298,7 @@ def main():
     submission = pd.DataFrame()
     submission['PredictionString'] = prediction_strings
     submission['image_id'] = file_names
-    submission.to_csv(os.path.join(args.work_dir, f'submission.csv'), index=None)
+    submission.to_csv(os.path.join(workdir, f'submission.csv'), index=None)
 
 
 if __name__ == '__main__':

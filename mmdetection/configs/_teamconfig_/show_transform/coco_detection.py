@@ -17,8 +17,10 @@ img_norm_cfg = dict(
 )
 
 train_pipeline = [
-    dict(type="Mosaic", img_scale=(640, 640)),
-    dict(type="RandomFlip", flip_ratio=0.0),  # 0.0으로 설정은 하였지만 default meta를 위해 남겨두어야 함
+    dict(type="Mosaic", img_scale=(512,512), center_ratio_range=(0.5, 1.5), prob=0.5),
+    dict(type="Resize", img_scale=(512, 512), keep_ratio=True), # Don't fix it
+    dict(type="RandomFlip", flip_ratio=0.3, direction="horizontal"),# flip_ratio: 0.0 or value
+    dict(type="Pad", size_divisor=32),
     dict(type="DefaultFormatBundle"),
     dict(type="Collect", keys=["img", "gt_bboxes", "gt_labels"]),
 ]
