@@ -20,6 +20,9 @@ from mmdet.utils import (build_ddp, build_dp, compat_cfg, get_device,
                          replace_cfg_vals, setup_multi_processes,
                          update_data_root)
 
+import pandas as pd
+from pandas import DataFrame
+from pycocotools.coco import COCO
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -29,6 +32,7 @@ def parse_args():
     parser.add_argument(
         '--work-dir',
         help='the directory to save the file containing evaluation metrics')
+    parser.add_argument('--test-type', type=str, default=None, help='aug, model, data')
     parser.add_argument('--out', help='output result file in pickle format')
     parser.add_argument(
         '--fuse-conv-bn',
@@ -120,21 +124,23 @@ def parse_args():
 
 def main():
     args = parse_args()
+    
+    config_name = args.config
+    config_file = f"configs/_teamconfig_/[{args.test_type}]{config_name}/{config_name}_config.py"
+    cfg = Config.fromfile(config_file)
 
-    assert args.out or args.eval or args.format_only or args.show \
-        or args.show_dir, \
-        ('Please specify at least one operation (save/eval/format/show the '
-         'results / save the results) with the argument "--out", "--eval"'
-         ', "--format-only", "--show" or "--show-dir"')
+    # assert args.out or args.eval or args.format_only or args.show \
+    #     or args.show_dir, \
+    #     ('Please specify at least one operation (save/eval/format/show the '
+    #      'results / save the results) with the argument "--out", "--eval"'
+    #      ', "--format-only", "--show" or "--show-dir"')
 
     if args.eval and args.format_only:
         raise ValueError('--eval and --format_only cannot be both specified')
 
     if args.out is not None and not args.out.endswith(('.pkl', '.pickle')):
         raise ValueError('The output file must be a pkl file.')
-
-    cfg = Config.fromfile(args.config)
-
+    
     # replace the ${key} with the value of cfg.key
     cfg = replace_cfg_vals(cfg)
 
@@ -209,9 +215,10 @@ def main():
     rank, _ = get_dist_info()
     # allows not to create
     if args.work_dir is not None and rank == 0:
-        mmcv.mkdir_or_exist(osp.abspath(args.work_dir))
+        workdir = f"configs/_teamconfig_/[{args.test_type}]{args.work_dir}/results"
+        mmcv.mkdir_or_exist(osp.abspath(workdir))
         timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-        json_file = osp.join(args.work_dir, f'eval_{timestamp}.json')
+        json_file = osp.join(workdir, f'eval_{timestamp}.json')
 
     # build the dataloader
     dataset = build_dataset(cfg.data.test)
@@ -223,7 +230,7 @@ def main():
     fp16_cfg = cfg.get('fp16', None)
     if fp16_cfg is not None:
         wrap_fp16_model(model)
-    checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
+    checkpoint = load_checkpoint(model, f'configs/_teamconfig_/[{args.test_type}]{args.checkpoint}/checkpoint/latest.pth', map_location='cpu')
     if args.fuse_conv_bn:
         model = fuse_conv_bn(model)
     # old versions did not save class info in checkpoints, this walkaround is
@@ -269,6 +276,29 @@ def main():
             metric_dict = dict(config=args.config, metric=metric)
             if args.work_dir is not None and rank == 0:
                 mmcv.dump(metric_dict, json_file)
+                
+    # submission 양식에 맞게 output 후처리
+    prediction_strings = []
+    file_names = []
+    coco = COCO(cfg.data.test.ann_file)
+
+    class_num = 10
+    for i, out in enumerate(outputs):
+        prediction_string = ''
+        image_info = coco.loadImgs(coco.getImgIds(imgIds=i))[0]
+        for j in range(class_num):
+            for o in out[j]:
+                prediction_string += str(j) + ' ' + str(o[4]) + ' ' + str(o[0]) + ' ' + str(o[1]) + ' ' + str(
+                    o[2]) + ' ' + str(o[3]) + ' '
+            
+        prediction_strings.append(prediction_string)
+        file_names.append(image_info['file_name'])
+
+
+    submission = pd.DataFrame()
+    submission['PredictionString'] = prediction_strings
+    submission['image_id'] = file_names
+    submission.to_csv(os.path.join(workdir, f'submission.csv'), index=None)
 
 
 if __name__ == '__main__':

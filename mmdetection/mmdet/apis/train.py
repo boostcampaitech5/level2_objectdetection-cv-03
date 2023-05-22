@@ -183,6 +183,11 @@ def train_detector(model,
     if fp16_cfg is not None:
         optimizer_config = Fp16OptimizerHook(
             **cfg.optimizer_config, **fp16_cfg, distributed=distributed)
+        # Check if runner.meta is None and initialize if needed
+        if runner.meta is None:
+            runner.meta = {}
+        # Add fp16_cfg to runner.meta
+        runner.meta['fp16'] = fp16_cfg
     elif distributed and 'type' not in cfg.optimizer_config:
         optimizer_config = OptimizerHook(**cfg.optimizer_config)
     else:
