@@ -71,10 +71,10 @@ This project follows the [all-contributors](https://github.com/all-contributors/
 
 ➡️ Link따라 들어가시면 보실 수 있습니다.
 
-1. [EDA](https://calico-dance-4bf.notion.site/EDA-c883e3e6f9654e81805047fbc831a1dc)
-2. [Augmentation](https://calico-dance-4bf.notion.site/Augmentation-f31b33a09cdb42c3941863028fadcda2)
-3. [Model-MMDetection](https://calico-dance-4bf.notion.site/Model-215ceba896e54e74ada78787fdc8666a)
-4. [Model-YOLOv8](https://calico-dance-4bf.notion.site/YOLOv8-05e8ebf98d8541d58e1b465266209003)
+1. [EDA](https://jjjuuuun.notion.site/EDA-c883e3e6f9654e81805047fbc831a1dc?pvs=4)
+2. [Augmentation](https://jjjuuuun.notion.site/Augmentation-f31b33a09cdb42c3941863028fadcda2?pvs=4)
+3. [Model-MMDetection](https://jjjuuuun.notion.site/Model-215ceba896e54e74ada78787fdc8666a?pvs=4)
+4. [Model-YOLOv8](https://jjjuuuun.notion.site/YOLOv8-05e8ebf98d8541d58e1b465266209003?pvs=4)
 5. [Wandb 실험 결과](https://wandb.ai/ganisokay/recycle_trash/reports/Copy-of-kimseungki1011-s-Wrap-up-report-Graphs--Vmlldzo0NDE5Nzk5)
 
 ## 🗒️ 프로젝트 결과
